@@ -5,21 +5,13 @@ import logging
 from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template import loader
-from django import forms
-from django.contrib.admin import widgets
 from django.contrib.messages import api as messages_api
 from django.contrib.admin.views.decorators import staff_member_required
 
-from wazimap.models import FieldTable
 from .dataset_upload import UploadedDataSet
+from .forms import DataUploadForm
 
 log = logging.getLogger(__name__)
-
-
-class DataUploadForm(forms.Form):
-    field_tables = FieldTable.objects.all()
-    field_table = forms.ModelChoiceField(field_tables)
-    data_file = forms.FileField(widget=widgets.AdminFileWidget)
 
 
 @staff_member_required

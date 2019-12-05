@@ -1,6 +1,5 @@
 import logging
 import psycopg2
-from psycopg2 import sql
 from django.conf import settings
 
 log = logging.getLogger(__name__)
@@ -10,6 +9,7 @@ class UploadedDataSet(object):
     """
     Class to create and process datasets that were uploaded from the admin site.
     """
+
     def __init__(self, f, field_table):
         self._uploaded_file = f
         self._field_table = field_table
@@ -25,6 +25,6 @@ class UploadedDataSet(object):
 
         table_name = self._field_table.name.lower()
 
-        cursor.copy_from(self._uploaded_file, table_name, sep=',')
+        cursor.copy_from(self._uploaded_file, table_name, sep=",")
 
         connection.commit()
