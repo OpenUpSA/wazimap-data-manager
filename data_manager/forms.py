@@ -1,9 +1,11 @@
 from django import forms
-from wazimap.models import FieldTable
-from django.contrib.admin import widgets
+
+# from wazimap.models import FieldTable
+# from django.contrib.admin import widgets
+from .models import UploadedDataset
 
 
-class DataUploadForm(forms.Form):
-    field_tables = FieldTable.objects.all()
-    field_table = forms.ModelChoiceField(field_tables)
-    data_file = forms.FileField(widget=widgets.AdminFileWidget)
+class UploadedDatasetForm(forms.ModelForm):
+    class Meta:
+        model = UploadedDataset
+        fields = "__all__"

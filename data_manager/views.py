@@ -7,9 +7,10 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.template import loader
 from django.contrib.messages import api as messages_api
 from django.contrib.admin.views.decorators import staff_member_required
+from django_q.tasks import async_task
 
-from .dataset_upload import UploadedDataSet
-from .forms import DataUploadForm
+from .dataset_upload import handle_uploaded_dataset
+from .forms import UploadedDatasetForm
 
 log = logging.getLogger(__name__)
 
@@ -17,14 +18,16 @@ log = logging.getLogger(__name__)
 @staff_member_required
 def add_dataset(request):
     if request.method == "POST":
-        form = DataUploadForm(request.POST, request.FILES)
+        form = UploadedDatasetForm(request.POST, request.FILES)
         if form.is_valid():
-            data_file = request.FILES["data_file"]
             try:
-                handle_uploaded_dataset(
-                    request.FILES["data_file"], form.cleaned_data["field_table"]
+                dataset = form.save()
+                task_id = async_task(
+                    "data_manager.dataset_upload.handle_uploaded_dataset", dataset.id
                 )
-                messages_api.success(request, "Successfully uploaded dataset!")
+                messages_api.success(
+                    request, "Dataset has been upload and is currently being processed"
+                )
                 return HttpResponseRedirect("/admin/")
             except Exception as e:
                 log.debug(e)
@@ -32,14 +35,9 @@ def add_dataset(request):
                     request, "Error occurred while uploading dataset: {}".format(e)
                 )
     else:
-        form = DataUploadForm()
+        form = UploadedDatasetForm
     return render(
         request,
         "data_manager/dataset_form.html",
         {"model_name": "Field table", "form": form},
     )
-
-
-def handle_uploaded_dataset(f, field_table):
-    uploaded_dataset = UploadedDataSet(f, field_table)
-    uploaded_dataset.insert_data()
