@@ -12,7 +12,7 @@ setup(
     version="0.1",
     packages=find_packages(),
     include_package_data=True,
-    install_requires=["django-q>=1.0.2"],
+    install_requires=["django-q>=1.0.2", "djangorestframework>=3.10.3"],
     license="MIT License",  # example license
     description="Django app to upload datasets into wazimap",
     long_description=README,
