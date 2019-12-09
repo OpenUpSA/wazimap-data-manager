@@ -1,43 +1,40 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
-import logging
-from django.shortcuts import render
-from django.http import HttpResponse, HttpResponseRedirect
-from django.template import loader
-from django.contrib.messages import api as messages_api
-from django.contrib.admin.views.decorators import staff_member_required
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.parsers import FileUploadParser, MultiPartParser
+from rest_framework import status
 from django_q.tasks import async_task
 
-from .dataset_upload import handle_uploaded_dataset
-from .forms import UploadedDatasetForm
-
-log = logging.getLogger(__name__)
+from .models import UploadedDataset
+from .serializer import UploadDatasetSerializer
 
 
-@staff_member_required
-def add_dataset(request):
-    if request.method == "POST":
-        form = UploadedDatasetForm(request.POST, request.FILES)
-        if form.is_valid():
-            try:
-                dataset = form.save()
-                task_id = async_task(
-                    "data_manager.dataset_upload.handle_uploaded_dataset", dataset.id
-                )
-                messages_api.success(
-                    request, "Dataset has been upload and is currently being processed"
-                )
-                return HttpResponseRedirect("/admin/")
-            except Exception as e:
-                log.debug(e)
-                messages_api.error(
-                    request, "Error occurred while uploading dataset: {}".format(e)
-                )
-    else:
-        form = UploadedDatasetForm
-    return render(
-        request,
-        "data_manager/dataset_form.html",
-        {"model_name": "Field table", "form": form},
-    )
+class UploadDatasetView(APIView):
+    """
+    Upload properly formatted dataset to wazimap
+    """
+
+    parser_classes = (MultiPartParser,)
+
+    def get(self, request):
+        """
+        Show all the dataset that have been uploaded
+        """
+        query = UploadedDataset.objects.all()
+        serializer = UploadDatasetSerializer(query, many=True)
+
+        return Response({"results": serializer.data}, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        serializer = UploadDatasetSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            dataset = serializer.save()
+            task_id = async_task(
+                "data_manager.dataset_upload.handle_uploaded_dataset", dataset.id
+            )
+            return Response(
+                {
+                    "success": "Dataset has being uploaded and is currently being processed "
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
